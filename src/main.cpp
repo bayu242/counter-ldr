@@ -1,40 +1,79 @@
 #include <Arduino.h>
-#include <Wire.h>
-#include "AdvancedButton.h"
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x26, 16, 2); // Set the LCD I2C address and dimensions
+// function
+bool isClick(int pin);
 
-AdvancedButton button(D6); // Attach button to pin D6
+#define btnTotalReset D7
+#define btnReset D6
+#define sensorPin D5
+
+// variabel
+
+unsigned int count = 0;
+unsigned int totalCount = 0;
+
+LiquidCrystal_I2C lcd(0x26, 16, 2);
 
 void setup()
 {
   Serial.begin(115200);
-  button.begin();
-  lcd.init();      // Initialize the LCD
-  lcd.backlight(); // Turn on the backlight
+  pinMode(btnReset, INPUT_PULLUP);
+  pinMode(sensorPin, INPUT_PULLUP);
+  pinMode(btnTotalReset, INPUT_PULLUP);
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Counter Machine");
+  delay(2000);
 }
 
 void loop()
 {
-  if (button.isSingleClick())
+  if (isClick(btnReset) == true)
   {
+    count++;
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Single click");
+    lcd.print("Count: ");
+    lcd.print(count);
+    Serial.println(count);
   }
 
-  if (button.isDoubleClick())
+  if (isClick(btnTotalReset) == true)
   {
+    count = 0;
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Double click");
+    lcd.print("Count: ");
+    lcd.print(count);
+    Serial.println(count);
   }
+}
 
-  if (button.isLongPress())
+bool isClick(int pin)
+{
+  int buttonState = digitalRead(pin);
+  bool isButtonPress = false;
+  unsigned long pressStartTime = 0;
+
+  if (buttonState == LOW)
   {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Long press");
+    if (!isButtonPress)
+    {
+      isButtonPress = true;
+      pressStartTime = millis();
+    }
+
+    if (millis() - pressStartTime > 50)
+    {
+      isButtonPress = false;
+      return true;
+    }
   }
+  else
+  {
+    isButtonPress = false;
+  }
+  return false;
 }
