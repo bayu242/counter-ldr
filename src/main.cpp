@@ -36,62 +36,56 @@ void setup()
 
   pinMode(BTN_RESET_PIN, INPUT);
   pinMode(BTN_RESET_TOTAL_PIN, INPUT);
+
+  lcd.setCursor(0, 0);
+  lcd.print("Counter Machine");
+  delay(2000);
+  lcd.clear();
 }
 
 void loop()
 {
+  //add funcrtion to loop
   buttonHandler();
   sensorHandler();
 
-  if (isResetPressed == true)
-  {
-    count = 0;
-  }
-  if (isResetTotalPressed == true)
-  {
-    count = 0;
-    totalCount = 0;
-  }
-
-  if (count != previousCount)
-  {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Count: ");
-    lcd.print(count);
-    lcd.setCursor(0, 1);
-    lcd.print("Total: ");
-    lcd.print(totalCount);
-    previousCount = count;
-  }
+  char countBuffer[16];
+  sprintf(countBuffer, "Count: %d", count);
+  char totalCountBuffer[16];
+  sprintf(totalCountBuffer, "Total: %d", totalCount);
+  lcd.setCursor(0, 0);
+  lcd.print(countBuffer);
+  lcd.setCursor(0, 1);
+  lcd.print(totalCountBuffer);
 }
 
+//button handler
 void buttonHandler()
 {
   currentTime = millis();
+
+  //reset count
   if (digitalRead(BTN_RESET_PIN) == LOW && currentTime - previousResetTime > debounceTime)
   {
-    isResetPressed = true;
+    count = 0;
     previousResetTime = currentTime;
-  }
-  else
-  {
-    isResetPressed = false;
+    lcd.clear();
   }
 
+  //reset count and total count
   if (digitalRead(BTN_RESET_TOTAL_PIN) == LOW && currentTime - previousResetTotalTime > debounceTime)
   {
-    isResetTotalPressed = true;
+    count = 0;
+    totalCount = 0;
     previousResetTotalTime = currentTime;
-  }
-  else
-  {
-    isResetTotalPressed = false;
+    lcd.clear();
   }
 }
 
+//sensor handler
 void sensorHandler()
 {
+  //read sensor and triger count
   if (digitalRead(SENSOR_PIN) == LOW && sensorState == false)
   {
     sensorState = true;
@@ -101,5 +95,6 @@ void sensorHandler()
     sensorState = false;
     count++;
     totalCount++;
+    lcd.clear();
   }
 }
