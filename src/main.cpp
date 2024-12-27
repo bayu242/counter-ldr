@@ -1,79 +1,105 @@
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
-
-// function
-bool isClick(int pin);
-
-#define btnTotalReset D7
-#define btnReset D6
-#define sensorPin D5
-
-// variabel
-
-unsigned int count = 0;
-unsigned int totalCount = 0;
+#include <Wire.h>
 
 LiquidCrystal_I2C lcd(0x26, 16, 2);
+
+// function declaration
+void buttonHandler();
+void sensorHandler();
+
+// button parameter
+#define BTN_RESET_PIN D5
+#define BTN_RESET_TOTAL_PIN D6
+
+bool isResetPressed = false;
+bool isResetTotalPressed = false;
+
+unsigned long currentTime = 0;
+unsigned long previousResetTime = 0;
+unsigned long previousResetTotalTime = 0;
+unsigned int debounceTime = 100;
+
+/// sensor parameter
+#define SENSOR_PIN D7
+unsigned int count = 0;
+unsigned int totalCount = 0;
+unsigned int previousCount = 0;
+bool sensorState = false;
+unsigned long previousSensorTime = 0;
 
 void setup()
 {
   Serial.begin(115200);
-  pinMode(btnReset, INPUT_PULLUP);
-  pinMode(sensorPin, INPUT_PULLUP);
-  pinMode(btnTotalReset, INPUT_PULLUP);
   lcd.init();
   lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("Counter Machine");
-  delay(2000);
+
+  pinMode(BTN_RESET_PIN, INPUT);
+  pinMode(BTN_RESET_TOTAL_PIN, INPUT);
 }
 
 void loop()
 {
-  if (isClick(btnReset) == true)
-  {
-    count++;
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Count: ");
-    lcd.print(count);
-    Serial.println(count);
-  }
+  buttonHandler();
+  sensorHandler();
 
-  if (isClick(btnTotalReset) == true)
+  if (isResetPressed == true)
   {
     count = 0;
+  }
+  if (isResetTotalPressed == true)
+  {
+    count = 0;
+    totalCount = 0;
+  }
+
+  if (count != previousCount)
+  {
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Count: ");
     lcd.print(count);
-    Serial.println(count);
+    lcd.setCursor(0, 1);
+    lcd.print("Total: ");
+    lcd.print(totalCount);
+    previousCount = count;
   }
 }
 
-bool isClick(int pin)
+void buttonHandler()
 {
-  int buttonState = digitalRead(pin);
-  bool isButtonPress = false;
-  unsigned long pressStartTime = 0;
-
-  if (buttonState == LOW)
+  currentTime = millis();
+  if (digitalRead(BTN_RESET_PIN) == LOW && currentTime - previousResetTime > debounceTime)
   {
-    if (!isButtonPress)
-    {
-      isButtonPress = true;
-      pressStartTime = millis();
-    }
-
-    if (millis() - pressStartTime > 50)
-    {
-      isButtonPress = false;
-      return true;
-    }
+    isResetPressed = true;
+    previousResetTime = currentTime;
   }
   else
   {
-    isButtonPress = false;
+    isResetPressed = false;
   }
-  return false;
+
+  if (digitalRead(BTN_RESET_TOTAL_PIN) == LOW && currentTime - previousResetTotalTime > debounceTime)
+  {
+    isResetTotalPressed = true;
+    previousResetTotalTime = currentTime;
+  }
+  else
+  {
+    isResetTotalPressed = false;
+  }
+}
+
+void sensorHandler()
+{
+  if (digitalRead(SENSOR_PIN) == LOW && sensorState == false)
+  {
+    sensorState = true;
+  }
+  else if (digitalRead(SENSOR_PIN) == HIGH && sensorState == true)
+  {
+    sensorState = false;
+    count++;
+    totalCount++;
+  }
 }
